@@ -1,6 +1,6 @@
 {
   "name": "@zyx1121/apple-powerpoint-mcp",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "description": "MCP server for Microsoft PowerPoint — create, edit, and export presentations via Claude Code",
   "type": "module",
   "main": "./dist/index.js",
@@ -8,9 +8,11 @@
   "bin": {
     "apple-powerpoint-mcp": "dist/index.js"
   },
-  "files": ["dist"],
+  "files": [
+    "dist"
+  ],
   "scripts": {
-    "build": "tsc",
+    "build": "tsc && cp src/tools/pptx-helper.py dist/tools/",
     "dev": "tsc --watch",
     "prepublishOnly": "npm run build"
   },
@@ -25,7 +27,13 @@
     "@types/node": "^20.0.0",
     "typescript": "^5.0.0"
   },
-  "keywords": ["mcp", "powerpoint", "applescript", "macos", "presentation"],
+  "keywords": [
+    "mcp",
+    "powerpoint",
+    "applescript",
+    "macos",
+    "presentation"
+  ],
   "author": "zyx1121",
   "license": "MIT"
 }

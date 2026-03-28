@@ -1,10 +1,25 @@
 import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
-import { copyFileSync, existsSync, mkdirSync } from "node:fs";
+import { execFile } from "node:child_process";
+import { copyFileSync, existsSync } from "node:fs";
 import { homedir } from "node:os";
-import { join } from "node:path";
+import { dirname, join } from "node:path";
+import { fileURLToPath } from "node:url";
 import { z } from "zod";
 import { runAppleScript, runJxa, escapeForAppleScript } from "../applescript.js";
+import { PowerPointError } from "../applescript.js";
 import { success, withErrorHandling } from "../helpers.js";
+
+const __dirname = dirname(fileURLToPath(import.meta.url));
+const PPTX_HELPER = join(__dirname, "pptx-helper.py");
+
+async function runPythonHelper(args: string[]): Promise<string> {
+  return new Promise((resolve, reject) => {
+    execFile("uv", ["run", "--with", "python-pptx", "python3", PPTX_HELPER, ...args], { timeout: 30_000 }, (err, stdout, stderr) => {
+      if (err) return reject(new PowerPointError(stderr || err.message));
+      resolve(stdout.trimEnd());
+    });
+  });
+}
 
 // PowerPoint sandbox writes to ~/Library/Containers/com.microsoft.Powerpoint/Data/<path>
 // We need to copy from sandbox to the real target path after export.
@@ -329,6 +344,51 @@ shape.textFrame.textRange.paragraphFormat.bullet.visible = ${enabled};
 "done";`;
       await runJxa(jxa);
       return success({ updated: true, slide_number, shape_index, bullets: enabled });
+    }),
+  );
+
+  // ── 設定多層級文字（python-pptx）─────────────────────────
+  server.registerTool(
+    "powerpoint_set_text_levels",
+    {
+      description:
+        "Set multi-level text with indent levels on a shape (uses python-pptx). " +
+        "The template's bullet styles are preserved — only the indent level is set. " +
+        "IMPORTANT: PowerPoint must save the file first, and will need to reopen after.",
+      inputSchema: z.object({
+        slide_number: z.coerce.number().describe("Slide number (1-based)"),
+        shape_index: z.coerce.number().describe("Shape index on the slide"),
+        paragraphs: z.array(z.object({
+          text: z.string().describe("Paragraph text"),
+          level: z.coerce.number().default(0).describe("Indent level (0=top, 1=sub, 2=sub-sub, ...)"),
+        })).describe("Array of paragraphs with text and indent level"),
+      }),
+    },
+    withErrorHandling(async ({ slide_number, shape_index, paragraphs }) => {
+      // 1. Save from PowerPoint first
+      const saveScript = `
+tell application "Microsoft PowerPoint"
+  save active presentation
+  return full name of active presentation
+end tell`;
+      const filePath = (await runAppleScript(saveScript)).trim();
+
+      // 2. Run python helper to set levels
+      const parasJson = JSON.stringify(paragraphs);
+      await runPythonHelper(["set-levels", filePath, String(slide_number), String(shape_index), parasJson]);
+
+      // 3. Reopen in PowerPoint
+      const reopenScript = `
+tell application "Microsoft PowerPoint"
+  close active presentation saving no
+  delay 0.5
+  open "${escapeForAppleScript(filePath)}"
+  delay 1
+  return "reopened"
+end tell`;
+      await runAppleScript(reopenScript);
+
+      return success({ updated: true, slide_number, shape_index, paragraph_count: paragraphs.length });
     }),
   );
 
