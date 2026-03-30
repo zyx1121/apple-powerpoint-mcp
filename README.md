@@ -12,6 +12,7 @@ claude mcp add apple-powerpoint -- npx @zyx1121/apple-powerpoint-mcp
 
 - macOS with Microsoft PowerPoint installed
 - Node.js >= 18
+- [uv](https://docs.astral.sh/uv/) (for python-pptx operations)
 - First run will prompt for Automation permission (System Settings > Privacy & Security > Automation)
 
 ## Tools
@@ -24,10 +25,12 @@ claude mcp add apple-powerpoint -- npx @zyx1121/apple-powerpoint-mcp
 | `powerpoint_list_layouts` | List available layouts from the slide master |
 | `powerpoint_add_slide` | Add a slide with a specific layout |
 | `powerpoint_set_text` | Set text of a shape on a slide |
+| `powerpoint_set_text_levels` | Set multi-level text with indent levels (uses python-pptx) |
 | `powerpoint_format_text` | Set font size, bold, italic, color, font name |
-| `powerpoint_set_bullets` | Enable/disable bullet points |
+| `powerpoint_set_bullets` | Enable or disable bullet points |
+| `powerpoint_add_image` | Insert an image into a slide (uses python-pptx) |
 | `powerpoint_delete_slide` | Delete a slide by number |
-| `powerpoint_list_slides` | List all slides with titles |
+| `powerpoint_list_slides` | List all slides with titles and shape counts |
 | `powerpoint_save` | Save the presentation |
 | `powerpoint_export_pdf` | Export as PDF |
 | `powerpoint_preview` | Export PDF to /tmp for visual inspection |
@@ -41,6 +44,7 @@ claude mcp add apple-powerpoint -- npx @zyx1121/apple-powerpoint-mcp
 "Add a title slide"                → powerpoint_add_slide { layout_index: 1, title: "Hello" }
 "Set body text"                    → powerpoint_set_text { slide_number: 1, shape_index: 2, text: "Content" }
 "Make title bold 36pt"             → powerpoint_format_text { slide_number: 1, shape_index: 1, font_size: 36, bold: true }
+"Insert an image"                  → powerpoint_add_image { slide_number: 1, image_path: "/path/to/photo.png" }
 "Preview the result"               → powerpoint_preview
 "Save to desktop"                  → powerpoint_save { path: "/Users/me/Desktop/deck.pptx" }
 ```
@@ -53,6 +57,7 @@ Works with any .pptx template — open the template, use `powerpoint_list_layout
 
 - macOS only (uses AppleScript/JXA via `osascript`)
 - PowerPoint.app must be running
+- `powerpoint_add_image` and `powerpoint_set_text_levels` use python-pptx (requires `uv`) — the file is saved and reopened in PowerPoint after modification
 - File exports go through PowerPoint's sandbox (`~/Library/Containers/com.microsoft.Powerpoint/Data/`) — the `preview` and `export_pdf` tools handle this automatically
 
 ## License
