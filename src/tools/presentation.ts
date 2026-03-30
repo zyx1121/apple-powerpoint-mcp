@@ -501,6 +501,34 @@ end tell`;
     }),
   );
 
+  // ── 插入圖片 ─────────────────────────────────────────────
+  server.registerTool(
+    "powerpoint_add_image",
+    {
+      description: "Insert an image into a slide at a specified position and size.",
+      inputSchema: z.object({
+        slide_number: z.coerce.number().describe("Slide number (1-based)"),
+        image_path: z.string().describe("Absolute path to the image file (e.g. /Users/me/Desktop/photo.png)"),
+        x: z.coerce.number().default(100).describe("Left position in points (default 100)"),
+        y: z.coerce.number().default(100).describe("Top position in points (default 100)"),
+        width: z.coerce.number().default(400).describe("Width in points (default 400)"),
+        height: z.coerce.number().default(300).describe("Height in points (default 300)"),
+      }),
+    },
+    withErrorHandling(async ({ slide_number, image_path, x, y, width, height }) => {
+      // AppleScript cannot insert pictures — use python-pptx instead
+      const filePath = await runAppleScript(
+        `tell application "Microsoft PowerPoint" to return POSIX path of (full name of active presentation as alias)`,
+      );
+      const result = await runPythonHelper(["add-image", filePath.trim(), String(slide_number), image_path, String(x), String(y), String(width), String(height)]);
+      const parsed = JSON.parse(result);
+      if (parsed.error) throw new PowerPointError(parsed.error);
+      // Reopen the file to refresh PowerPoint
+      await runAppleScript(`tell application "Microsoft PowerPoint" to open POSIX file "${escapeForAppleScript(filePath.trim())}"`);
+      return success({ added: true, slide_number, image_path, position: { x, y }, size: { width, height } });
+    }),
+  );
+
   // ── 預覽投影片（匯出 PDF 到 /tmp）─────────────────────────
   server.registerTool(
     "powerpoint_preview",
