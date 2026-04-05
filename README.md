@@ -1,3 +1,13 @@
+```
+██████╗ ██████╗ ████████╗
+██╔══██╗██╔══██╗╚══██╔══╝
+██████╔╝██████╔╝   ██║   
+██╔═══╝ ██╔═══╝    ██║   
+██║     ██║        ██║   
+╚═╝     ╚═╝        ╚═╝   
+                         
+```
+
 # @zyx1121/apple-powerpoint-mcp
 
 MCP server for Microsoft PowerPoint — create, edit, and export presentations via Claude Code.
